@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shertercy</title>
+    <script>
+        (function () {
+            try {
+                var saved = JSON.parse(localStorage.getItem('shertercy.appearance') || '{}');
+                var root = document.documentElement;
+                if (saved.backgroundColor) root.style.setProperty('--backgroundColor', saved.backgroundColor);
+                if (saved.textColor)       root.style.setProperty('--textColor', saved.textColor);
+            } catch (e) { /* 隐私模式下localStorage不可用 */ }
+        })();
+    </script>
+    <link rel="stylesheet" href="ColorPanel.css">
+    <style>
+        :root {
+            --backgroundColor: #1E1F22;
+            --textColor: #BCBEC4;
+            --fontFamily: "Source Han Serif SC", serif;
+            --topBarHeight: 64px;
+        }
+        body {
+            background-color: var(--backgroundColor);
+            color: var(--textColor);
+            font-family: var(--fontFamily);
+            max-width: 800px;
+            margin: 0 auto;
+            padding-top: var(--topBarHeight); /*给顶栏让位*/
+        }
+        .TopBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--topBarHeight);
+            display: flex;
+            align-items: center; /*使元素在垂直位置上居中*/
+            padding-left: 16px; /*右边不设，让右侧格子自己贴到边缘*/
+            background: var(--backgroundColor);
+            border-bottom: 1px solid rgb(128 128 128 / 0.25);
+            z-index: 10;
+        }
+        .Settings {
+            position: relative;   /*给面板当定位参照*/
+            margin-left: auto;    /*推到顶栏最右*/
+            align-self: stretch;  /*撑满顶栏高度，成为一个整格*/
+            display: flex;        /*内部默认 stretch，按钮自动拉满高度*/
+            border-left: 1px solid rgb(128 128 128 / 0.25); /*只留左边一条*/
+        }
+        .SettingsButton {
+            font: inherit;
+            color: var(--textColor);
+            background: none;     /*不设底色＝页面底色*/
+            border: none;
+            padding: 0 24px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        }
+        .SettingsButton:hover {
+            background: rgba(128, 128, 128, 0.15); /*极微弱的高亮*/
+        }
+        .SettingsButton:focus-visible {
+            outline: 1px solid currentColor;
+            outline-offset: -4px; /*内缩，避免超出屏幕边缘被裁掉*/
+        }
+        .SettingsPanel {
+            position: absolute; /*脱离文档流——按钮不再被撑走*/
+            top: calc(100% + 8px);
+            right: 24px;        /*和按钮文字的右边缘对齐*/
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 14px;
+            max-height: calc(100vh - var(--topBarHeight) - 32px); /*小屏幕不超出视口*/
+            overflow-y: auto;
+            background: var(--backgroundColor);
+            border: 1px solid rgb(128 128 128 / 0.25);
+            border-radius: 6px;
+            box-shadow: 0 6px 20px rgb(0 0 0 / 0.3);
+            font-size: 14px;
+        }
+        .SettingsFieldName {
+            margin-bottom: 6px;
+            font-size: 12px;
+            opacity: 0.65;
+        }
+        .SettingsPanel[hidden] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Shertercy</h1>
+    <header class="TopBar">
+        <div class="Settings">
+            <button type="button" id="settingsToggle" class="SettingsButton"
+                aria-expanded="false" aria-controls="SettingsPanel">设置</button>
+
+            <div class="SettingsPanel" id="SettingsPanel" hidden>
+                <div class="SettingsField">
+                    <div class="SettingsFieldName">背景颜色</div>
+                    <div id="backgroundColorPanel"></div>
+                </div>
+
+                <div class="SettingsField">
+                    <div class="SettingsFieldName">文字颜色</div>
+                    <div id="textColorPanel"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <script src="ColorPanel.js"></script>
+
+    <script>
+        /* ---------- 设置面板的开关 ---------- */
+        const toggle = document.getElementById('settingsToggle');
+        const panel  = document.getElementById('SettingsPanel');
+
+        function setPanelOpen(open) {
+            panel.hidden = !open;
+            toggle.setAttribute('aria-expanded', String(open));
+        }
+
+        toggle.addEventListener('click', () => setPanelOpen(panel.hidden));
+
+        /* ---------- 外观：颜色 ↔ CSS变量 ↔ localStorage ---------- */
+        const root = document.documentElement;
+        const STORAGE_KEY = 'shertercy.appearance';
+
+        /*当前生效的颜色就是两个面板的初始值，不另存一份*/
+        const currentStyle = getComputedStyle(root);
+        const appearance = {
+            backgroundColor: currentStyle.getPropertyValue('--backgroundColor').trim(),
+            textColor:       currentStyle.getPropertyValue('--textColor').trim()
+        };
+
+        /*面板刚建立时也会回调一次，那不算用户改动*/
+        let hasUserChangedAppearance = false;
+
+        function applyAppearance() {
+            root.style.setProperty('--backgroundColor', appearance.backgroundColor);
+            root.style.setProperty('--textColor', appearance.textColor);
+        }
+
+        function saveAppearance() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appearance));
+            } catch (e) { /*隐私模式下存不了，本次会话仍然生效*/ }
+        }
+
+        function handleColorChange(name, hex) {
+            appearance[name] = hex;
+            if (!hasUserChangedAppearance) return;
+            applyAppearance();
+            saveAppearance();
+        }
+
+        new ColorPanel(document.getElementById('backgroundColorPanel'), {
+            initialColor: appearance.backgroundColor,
+            onChange: hex => handleColorChange('backgroundColor', hex)
+        });
+
+        new ColorPanel(document.getElementById('textColorPanel'), {
+            initialColor: appearance.textColor,
+            onChange: hex => handleColorChange('textColor', hex)
+        });
+
+        hasUserChangedAppearance = true;
+    </script>
+</body>
+</html>
