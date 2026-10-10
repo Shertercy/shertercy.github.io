@@ -149,11 +149,14 @@
           否则网络慢的时候，顶栏会先亮着初始值再跳变*/
         if (entry.trail.length) {
             titleElement.textContent = entry.trail.join(' / ');
-            document.title = entry.item.name + ' - ' + SITE_NAME;
         } else {
-            titleElement.textContent = '';
-            document.title = SITE_NAME;
+            titleElement.textContent = ''; /*没有上层就留空，右边站名已经说明身份了*/
         }
+
+        /*首页就是网站本身，标签页直接写站名，不必写成"站名 - 站名"*/
+        document.title = (path === DEFAULT_PATH)
+            ? SITE_NAME
+            : entry.item.name + ' - ' + SITE_NAME;
         showMeta(entry.item);
         highlightLink(path);
 
