@@ -1,0 +1,92 @@
+/*works.css 作品侧边栏与正文*/
+
+.WorksSidebar {
+    position: fixed;
+    top: var(--topBarHeight); /*接在顶栏下面，高度改了也跟着走*/
+    left: 0;
+    bottom: 0;
+    width: var(--worksSidebarWidth);
+    padding: 20px 0;
+    overflow-y: auto; /*目录长了在栏内滚动*/
+    background: var(--backgroundColor);
+    border-right: 1px solid rgb(128 128 128 / 0.25);
+    z-index: 5; /*比正文高，比顶栏和设置面板低*/
+
+    /*淡出淡入 + 滑出滑入。
+      用visibility而不是display，因为display不能做过渡*/
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-100%);
+    transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+}
+
+.WorksSidebar.isOpened {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+/*有children的是一层目录，缩进靠--depth，每层14px*/
+.WorksGroup {
+    margin-bottom: 16px;
+}
+
+/*嵌在里面的目录，间距收紧一点*/
+.WorksGroupChildren .WorksGroup {
+    margin-bottom: 8px;
+}
+
+.WorksGroupName {
+    padding: 0 20px 8px calc(20px + var(--depth, 0) * 14px);
+    font-size: 12px;
+    opacity: 0.5; /*目录名只是分类，弱化*/
+    cursor: pointer; /*可以点，用来折叠*/
+    user-select: none; /*点的时候别选中文字*/
+    transition: opacity 0.15s;
+}
+
+.WorksGroupName:hover {
+    opacity: 0.8;
+}
+
+.WorksGroupArrow {
+    display: inline-block;
+    transition: transform 0.15s;
+}
+
+/*收起来的时候箭头转成朝右*/
+.WorksGroup.isCollapsed .WorksGroupArrow {
+    transform: rotate(-90deg);
+}
+
+/*收起来的时候，下面的内容整个不显示*/
+.WorksGroup.isCollapsed > .WorksGroupChildren {
+    display: none;
+}
+
+.WorksLink {
+    display: block; /*让每个链接独占一行，悬停底色才是一整条*/
+    padding: 7px 20px 7px calc(20px + var(--depth, 0) * 14px);
+    color: var(--textColor);
+    text-decoration: none;
+    opacity: 0.8;
+    transition: background-color 0.15s, opacity 0.15s;
+}
+
+.WorksLink:hover {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.15);
+}
+
+/*当前正在看的那一篇*/
+.WorksLink.isCurrent {
+    opacity: 1;
+    background: rgba(128, 128, 128, 0.2);
+}
+
+/*正文。pre-wrap保留txt里的换行和空格，但照常折行*/
+.WorksContent {
+    white-space: pre-wrap;
+    font-size: var(--contentFontSize);     /*字号在设置里调，只影响正文*/
+    line-height: var(--contentLineHeight); /*行距同上*/
+}

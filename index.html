@@ -11,24 +11,52 @@
                 var root = document.documentElement;
                 if (saved.backgroundColor) root.style.setProperty('--backgroundColor', saved.backgroundColor);
                 if (saved.textColor)       root.style.setProperty('--textColor', saved.textColor);
+                if (saved.contentFontSize)   root.style.setProperty('--contentFontSize', saved.contentFontSize + 'px');
+                if (saved.contentLineHeight) root.style.setProperty('--contentLineHeight', saved.contentLineHeight);
             } catch (e) { /* 隐私模式下localStorage不可用 */ }
         })();
     </script>
     <link rel="stylesheet" href="ColorPanel.css">
+    <link rel="stylesheet" href="works.css">
     <style>
         :root {
             --backgroundColor: #1E1F22;
             --textColor: #BCBEC4;
             --fontFamily: "Source Han Serif SC", serif;
             --topBarHeight: 64px;
+            --worksSidebarWidth: 240px; /*侧边栏多宽。侧边栏自己和正文让位都用它*/
+            --contentFontSize: 16px;    /*正文字号。只影响正文，界面不变*/
+            --contentLineHeight: 1.8;   /*正文行距。中文用1.7到2.0之间比较透气*/
         }
         body {
             background-color: var(--backgroundColor);
             color: var(--textColor);
             font-family: var(--fontFamily);
+            padding-top: var(--topBarHeight); /*给顶栏让位*/
+            padding-left: 0;
+            transition: padding-left 0.2s; /*侧边栏开关时正文平滑让位*/
+        }
+        /*侧边栏打开时正文整体右移，去占它剩下的空间*/
+        body.isWorksOpen {
+            padding-left: var(--worksSidebarWidth);
+        }
+        /*阅读栏。负责居中，和视口边框分开*/
+        .Page {
+            box-sizing: border-box;
             max-width: 800px;
             margin: 0 auto;
-            padding-top: var(--topBarHeight); /*给顶栏让位*/
+            padding: 28px 16px 64px; /*四周留出呼吸的余地*/
+        }
+        /*顶栏中间那一栏，显示当前在看哪一篇*/
+        .TopBarTitle {
+            flex: 1;
+            min-width: 0; /*不写这句长名字不会变省略号，而是把顶栏撑开*/
+            padding: 0 16px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 14px;
+            opacity: 0.7;
         }
         .TopBar {
             position: fixed;
@@ -38,19 +66,31 @@
             height: var(--topBarHeight);
             display: flex;
             align-items: center; /*使元素在垂直位置上居中*/
-            padding-left: 16px; /*右边不设，让右侧格子自己贴到边缘*/
             background: var(--backgroundColor);
             border-bottom: 1px solid rgb(128 128 128 / 0.25);
             z-index: 10;
         }
-        .Settings {
-            position: relative;   /*给面板当定位参照*/
-            margin-left: auto;    /*推到顶栏最右*/
+        /*顶栏左右两格共用的部分*/
+        .TopBarCell {
+            position: relative;   /*给它里面的浮层当定位参照*/
             align-self: stretch;  /*撑满顶栏高度，成为一个整格*/
             display: flex;        /*内部默认 stretch，按钮自动拉满高度*/
-            border-left: 1px solid rgb(128 128 128 / 0.25); /*只留左边一条*/
         }
-        .SettingsButton {
+        /*左边那一格，分隔线留在朝向正文的一侧*/
+        .Works {
+            border-right: 1px solid rgb(128 128 128 / 0.25);
+        }
+        /*右上那一格：站名。margin-left:auto把右侧这一组整体推到最右*/
+        .WorksBrand {
+            margin-left: auto;
+            border-left: 1px solid rgb(128 128 128 / 0.25);
+        }
+        /*最右那一格*/
+        .Settings {
+            border-left: 1px solid rgb(128 128 128 / 0.25);
+        }
+        /*两个按钮共用*/
+        .TopBarButton {
             font: inherit;
             color: var(--textColor);
             background: none;     /*不设底色＝页面底色*/
@@ -59,12 +99,34 @@
             cursor: pointer;
             transition: background-color 0.15s;
         }
-        .SettingsButton:hover {
+        .TopBarButton:hover {
             background: rgba(128, 128, 128, 0.15); /*极微弱的高亮*/
         }
-        .SettingsButton:focus-visible {
+        .TopBarButton:focus-visible {
             outline: 1px solid currentColor;
             outline-offset: -4px; /*内缩，避免超出屏幕边缘被裁掉*/
+        }
+        /*右上角那一格的文字。只是个标签，不能点、没有悬停反馈*/
+        .TopBarLabel {
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            cursor: default; /*普通的箭头，不是"可以点"的小手，也不是选字的工字*/
+            opacity: 0.7;    /*比按钮淡一点，安静地待着*/
+        }
+        /*屏幕右下角的日期。像一枚安静的角标，不属于正文*/
+        .WorksMeta {
+            position: fixed;
+            right: 24px;
+            bottom: 16px;
+            z-index: 4;   /*比正文高，比侧边栏和顶栏低*/
+            padding: 5px 10px;
+            border-radius: 6px;
+            background: var(--backgroundColor); /*和页面同色：不显眼，但能挡住下面的字*/
+            font-size: 12px;
+        }
+        .WorksMetaText {
+            opacity: 0.5; /*只淡化文字，不动背景*/
         }
         .SettingsPanel {
             position: absolute; /*脱离文档流——按钮不再被撑走*/
@@ -87,16 +149,53 @@
             font-size: 12px;
             opacity: 0.65;
         }
+        /*一排选项按钮。字号和行距都用它*/
+        .SettingChoices {
+            display: flex;
+            gap: 4px;
+        }
+        .SettingChoice {
+            flex: 1; /*几个按钮平分宽度*/
+            font: inherit;
+            font-size: 12px;
+            color: var(--textColor);
+            background: none;
+            border: 1px solid rgb(128 128 128 / 0.35);
+            border-radius: 4px;
+            padding: 5px 0;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: background-color 0.15s, opacity 0.15s, border-color 0.15s;
+        }
+        .SettingChoice:hover {
+            opacity: 1;
+        }
+        /*当前选中的那一个*/
+        .SettingChoice.isChosen {
+            opacity: 1;
+            background: rgba(128, 128, 128, 0.25);
+            border-color: currentColor;
+        }
         .SettingsPanel[hidden] {
             display: none;
         }
     </style>
 </head>
 <body>
-    <h1>Shertercy</h1>
     <header class="TopBar">
-        <div class="Settings">
-            <button type="button" id="settingsToggle" class="SettingsButton"
+        <div class="TopBarCell Works">
+            <button type="button" id="worksToggle" class="TopBarButton"
+                aria-expanded="false" aria-controls="WorksSidebar">作品</button>
+        </div>
+
+        <div class="TopBarTitle" id="TopBarTitle">Error!</div>
+
+        <div class="TopBarCell WorksBrand">
+            <span class="TopBarLabel">Shertercy</span>
+        </div>
+
+        <div class="TopBarCell Settings">
+            <button type="button" id="settingsToggle" class="TopBarButton"
                 aria-expanded="false" aria-controls="SettingsPanel">设置</button>
 
             <div class="SettingsPanel" id="SettingsPanel" hidden>
@@ -109,11 +208,33 @@
                     <div class="SettingsFieldName">文字颜色</div>
                     <div id="textColorPanel"></div>
                 </div>
+
+                <div class="SettingsField">
+                    <div class="SettingsFieldName">正文字号</div>
+                    <div class="SettingChoices" id="FontSizeChoices"></div>
+                </div>
+
+                <div class="SettingsField">
+                    <div class="SettingsFieldName">行距</div>
+                    <div class="SettingChoices" id="LineHeightChoices"></div>
+                </div>
             </div>
         </div>
     </header>
 
+    <aside class="WorksSidebar" id="WorksSidebar"></aside>
+
+    <div class="WorksMeta" id="WorksMeta" hidden>
+        <span class="WorksMetaText" id="WorksMetaText"></span>
+    </div>
+
+    <main class="Page">
+        <div class="WorksContent" id="WorksContent"></div>
+    </main>
+
+    <script src="works-list.js"></script>
     <script src="ColorPanel.js"></script>
+    <script src="works.js"></script>
 
     <script>
         /* ---------- 设置面板的开关 ---------- */
@@ -134,8 +255,10 @@
         /*当前生效的颜色就是两个面板的初始值，不另存一份*/
         const currentStyle = getComputedStyle(root);
         const appearance = {
-            backgroundColor: currentStyle.getPropertyValue('--backgroundColor').trim(),
-            textColor:       currentStyle.getPropertyValue('--textColor').trim()
+            backgroundColor:  currentStyle.getPropertyValue('--backgroundColor').trim(),
+            textColor:        currentStyle.getPropertyValue('--textColor').trim(),
+            contentFontSize:  parseInt(currentStyle.getPropertyValue('--contentFontSize'), 10) || 16,
+            contentLineHeight: parseFloat(currentStyle.getPropertyValue('--contentLineHeight')) || 1.8
         };
 
         /*面板刚建立时也会回调一次，那不算用户改动*/
@@ -144,6 +267,8 @@
         function applyAppearance() {
             root.style.setProperty('--backgroundColor', appearance.backgroundColor);
             root.style.setProperty('--textColor', appearance.textColor);
+            root.style.setProperty('--contentFontSize', appearance.contentFontSize + 'px');
+            root.style.setProperty('--contentLineHeight', appearance.contentLineHeight);
         }
 
         function saveAppearance() {
@@ -168,6 +293,37 @@
             initialColor: appearance.textColor,
             onChange: hex => handleColorChange('textColor', hex)
         });
+
+        /* ---------- 一排选项按钮（字号、行距共用） ---------- */
+        function setupChoiceRow(containerId, values, settingName) {
+            const container = document.getElementById(containerId);
+
+            container.innerHTML = values.map(value =>
+                `<button type="button" class="SettingChoice" data-value="${value}">${value}</button>`
+            ).join('');
+
+            function markChosen() {
+                container.querySelectorAll('.SettingChoice').forEach(button => {
+                    button.classList.toggle('isChosen',
+                        Number(button.dataset.value) === Number(appearance[settingName]));
+                });
+            }
+
+            container.addEventListener('click', event => {
+                const button = event.target.closest('.SettingChoice');
+                if (!button) return;
+
+                appearance[settingName] = Number(button.dataset.value);
+                applyAppearance();
+                markChosen();
+                saveAppearance();
+            });
+
+            markChosen(); /*建好就把当前值标出来*/
+        }
+
+        setupChoiceRow('FontSizeChoices',   [14, 16, 18, 20, 24], 'contentFontSize');
+        setupChoiceRow('LineHeightChoices', [1.5, 1.8, 2.1, 2.4], 'contentLineHeight');
 
         hasUserChangedAppearance = true;
     </script>
