@@ -179,6 +179,23 @@
         .SettingsPanel[hidden] {
             display: none;
         }
+        /*窄屏：顶栏本来就挤，站名让位给中间的路径*/
+        @media (max-width: 600px) {
+            .WorksBrand {
+                display: none;
+            }
+            /*站名那一格本来靠margin-left:auto把右侧推过去。
+              它不在了，这份活就得交给下一个*/
+            .Settings {
+                margin-left: auto;
+            }
+            .TopBarButton {
+                padding: 0 16px;
+            }
+            .TopBarTitle {
+                padding: 0 12px;
+            }
+        }
     </style>
 </head>
 <body>

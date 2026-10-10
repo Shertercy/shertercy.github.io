@@ -149,11 +149,13 @@
           否则网络慢的时候，顶栏会先亮着初始值再跳变*/
         if (entry.trail.length) {
             titleElement.textContent = entry.trail.join(' / ');
-            document.title = entry.item.name + ' - ' + SITE_NAME;
         } else {
-            titleElement.textContent = '';
-            document.title = SITE_NAME;
+            titleElement.textContent = ''; /*没有上层就留空，右边站名已经说明身份了*/
         }
+
+        /*标签页标题：文档名 - 站名。
+          这一句必须每次都被执行到——一旦跳过，标签栏就会留着上一篇的名字*/
+        document.title = entry.item.name + ' - ' + SITE_NAME;
         showMeta(entry.item);
         highlightLink(path);
 
