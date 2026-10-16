@@ -62,8 +62,8 @@ const WORKS = [
                 name: '盒装幸福',
                 children: [
                     { name: '序 盒装幸福', path: '/作品/主/盒装幸福/序 盒装幸福.txt', created: '2026-10-11', updated: '2026-10-11' },
-                    { name: '一 光中书', path: '/作品/主/盒装幸福/一 光中书.txt', created: '2026-10-11', updated: '2026-10-11' },
-                    { name: '二 清梦压星河', path: '/作品/主/盒装幸福/二 清梦压星河.txt', created: '2026-10-11', updated: '2026-10-11' }
+                    { name: '一 光中书', path: '/作品/主/盒装幸福/一 光中书.txt', created: '2026-10-11', updated: '2026-10-16' },
+                    { name: '二 清梦压星河', path: '/作品/主/盒装幸福/二 清梦压星河.txt', created: '2026-10-11', updated: '2026-10-16' }
                 ]
             }
         ]
@@ -71,7 +71,7 @@ const WORKS = [
     {
         name: '零散',
         children: [
-            { name: 'shertercy.github.io', path: '/作品/零散/shertercy.github.io.txt', created: '2026-10-11', updated: '2026-10-11' }
+            { name: 'shertercy.github.io', path: '/作品/零散/shertercy.github.io.txt', created: '2026-10-11', updated: '2026-10-16' }
         ]
     }
 ];
